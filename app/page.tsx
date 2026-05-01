@@ -63,13 +63,17 @@ export default function Home() {
           flexDirection: "column",
         }}
       >
-        {/* 顶部工具栏 */}
+        {/* 顶部工具栏 — paddingTop 给 iOS 刘海/状态栏留 safe area */}
         <div
           style={{
             flexShrink: 0,
-            padding: "10px 14px",
-            background: "rgba(2, 6, 23, 0.85)",
+            paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)",
+            paddingBottom: 10,
+            paddingLeft: "calc(env(safe-area-inset-left, 0px) + 14px)",
+            paddingRight: "calc(env(safe-area-inset-right, 0px) + 14px)",
+            background: "rgba(2, 6, 23, 0.92)",
             backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
             borderBottom: "1px solid rgba(148, 163, 184, 0.1)",
             display: "flex",
             alignItems: "center",
@@ -79,14 +83,15 @@ export default function Home() {
           <button
             onClick={reset}
             style={{
-              background: "rgba(148, 163, 184, 0.1)",
-              border: "1px solid rgba(148, 163, 184, 0.2)",
-              color: "#e2e8f0",
-              padding: "6px 12px",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
+              background: "rgba(245, 158, 11, 0.15)",
+              border: "1px solid rgba(245, 158, 11, 0.4)",
+              color: "#fbbf24",
+              padding: "8px 14px",
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 700,
               cursor: "pointer",
+              flexShrink: 0,
             }}
           >
             ← 新题
@@ -129,7 +134,10 @@ export default function Home() {
           "radial-gradient(ellipse at top, rgba(168, 85, 247, 0.18), transparent 50%), radial-gradient(ellipse at bottom right, rgba(245, 158, 11, 0.15), transparent 50%), #020617",
         display: "flex",
         flexDirection: "column",
-        padding: "32px 20px 40px",
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 32px)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 28px)",
+        paddingLeft: "calc(env(safe-area-inset-left, 0px) + 20px)",
+        paddingRight: "calc(env(safe-area-inset-right, 0px) + 20px)",
       }}
     >
       {/* Hero 区 */}
@@ -252,16 +260,21 @@ export default function Home() {
         )}
       </div>
 
-      {/* 底部小字 */}
+      {/* 底部品牌 */}
       <div
         style={{
           textAlign: "center",
-          fontSize: 10,
-          color: "#475569",
+          fontSize: 11,
+          color: "#64748b",
           marginTop: 32,
+          letterSpacing: 0.5,
+          fontWeight: 600,
         }}
       >
-        Powered by Claude · Built with Next.js
+        <span className="gradient-text" style={{ fontWeight: 700 }}>
+          RiverStone
+        </span>
+        <span style={{ color: "#475569" }}> Singapore 出品</span>
       </div>
     </main>
   );
