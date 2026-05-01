@@ -1,8 +1,8 @@
 name: Deploy to Lighthouse
 
 # 触发条件:
-# 1. 推送到 main 分支自动跑
-# 2. 仓库页面 Actions 选项卡里手动点 "Run workflow"
+# 1. push 到 main 分支自动跑
+# 2. Actions 选项卡里手动点 "Run workflow"
 on:
   push:
     branches: [main]
@@ -18,15 +18,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.LIGHTHOUSE_HOST }}
-          username: ${{ secrets.LIGHTHOUSE_USER }}
-          key: ${{ secrets.LIGHTHOUSE_SSH_KEY }}
-          # 任一命令失败立刻停止 (set -e 行为)
-          script_stop: true
-          # 命令放 host 上的 deploy.sh, 这样改逻辑只改一处
-          script: |
-            cd /opt/edu-solver
-            bash scripts/deploy.sh
+      # 1. 把 base64 编码的私钥解码到 ~/.ssh
+      #    secret LIGHTHOUSE_SSH_KEY 存 base64, 这样长字符串复制粘贴不会被 OrcaTerm 等终端误处理
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.LIGHTHOUSE_SSH_KEY }}" | base64 -d > ~/.ssh/id_lighthouse
+          chmod 600 ~/.ssh/id_lighthouse
+          # 验证私钥格式: 输出 fingerprint 说明 key 文件 OK
+          ssh-keygen -l -f ~/.ssh/id_lighthouse
+          # 把目标主机加到 known_hosts 避免首次询问
+          ssh-keyscan -H "${{ secrets.LIGHTHOUSE_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # 2. SSH 进 server 跑 deploy 脚本
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/id_lighthouse \
+              -o StrictHostKeyChecking=accept-new \
+              "${{ secrets.LIGHTHOUSE_USER }}@${{ secrets.LIGHTHOUSE_HOST }}" \
+              'cd /opt/edu-solver && bash scripts/deploy.sh'
