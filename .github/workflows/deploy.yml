@@ -32,9 +32,11 @@ jobs:
           ssh-keyscan -H "${{ secrets.LIGHTHOUSE_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
       # 2. SSH 进 server 跑 deploy 脚本
+      #    先 git pull 拿最新代码 (防止 deploy.sh 还没在服务器上的鸡生蛋情况),
+      #    再跑 scripts/deploy.sh 走完整流程
       - name: Deploy
         run: |
           ssh -i ~/.ssh/id_lighthouse \
               -o StrictHostKeyChecking=accept-new \
               "${{ secrets.LIGHTHOUSE_USER }}@${{ secrets.LIGHTHOUSE_HOST }}" \
-              'cd /opt/edu-solver && bash scripts/deploy.sh'
+              'cd /opt/edu-solver && git pull origin main && bash scripts/deploy.sh'
