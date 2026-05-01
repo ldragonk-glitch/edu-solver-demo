@@ -1,0 +1,32 @@
+name: Deploy to Lighthouse
+
+# 触发条件:
+# 1. 推送到 main 分支自动跑
+# 2. 仓库页面 Actions 选项卡里手动点 "Run workflow"
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 同一时间只跑一个 deploy, 后到的取消旧的
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.LIGHTHOUSE_HOST }}
+          username: ${{ secrets.LIGHTHOUSE_USER }}
+          key: ${{ secrets.LIGHTHOUSE_SSH_KEY }}
+          # 任一命令失败立刻停止 (set -e 行为)
+          script_stop: true
+          # 命令放 host 上的 deploy.sh, 这样改逻辑只改一处
+          script: |
+            cd /opt/edu-solver
+            bash scripts/deploy.sh
