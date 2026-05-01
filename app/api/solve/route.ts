@@ -1,6 +1,7 @@
 import { anthropic, MODEL } from "@/lib/anthropic";
 import { solveTool } from "@/lib/solveSchema";
 import { SYSTEM_PROMPT } from "@/lib/prompts";
+import { computeCostUsd, logUsage } from "@/lib/usage";
 import { NextResponse } from "next/server";
 
 export const maxDuration = 120;
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
     },
   ];
 
+  const t0 = Date.now();
   try {
     const response = await anthropic.messages.create({
       model: MODEL,
@@ -73,6 +75,7 @@ export async function POST(req: Request) {
       tool_choice: { type: "tool", name: "render_solution" },
       messages: [{ role: "user", content: userContent }],
     });
+    const latency_ms = Date.now() - t0;
 
     const toolUse = response.content.find((c) => c.type === "tool_use");
     if (!toolUse || toolUse.type !== "tool_use") {
@@ -90,12 +93,40 @@ export async function POST(req: Request) {
       );
     }
 
+    // 算成本 + 写日志 (失败不阻塞主流程)
+    const cache_creation =
+      (response.usage as { cache_creation_input_tokens?: number })
+        .cache_creation_input_tokens || 0;
+    const cache_read =
+      (response.usage as { cache_read_input_tokens?: number })
+        .cache_read_input_tokens || 0;
+    const cost_usd = computeCostUsd(
+      response.model,
+      response.usage.input_tokens,
+      response.usage.output_tokens,
+      cache_creation,
+      cache_read,
+    );
+    void logUsage({
+      ts: new Date().toISOString(),
+      model: response.model,
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+      cache_creation_input_tokens: cache_creation,
+      cache_read_input_tokens: cache_read,
+      cost_usd,
+      latency_ms,
+      stop_reason: response.stop_reason || undefined,
+    });
+
     return NextResponse.json({
       html: result.html,
       summary: result.summary,
       usage: response.usage,
       model: response.model,
       stop_reason: response.stop_reason,
+      cost_usd,
+      latency_ms,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "未知错误";
