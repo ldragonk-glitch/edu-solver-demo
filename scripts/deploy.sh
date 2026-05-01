@@ -53,22 +53,34 @@ else
     cd /opt/edu-solver
 fi
 
-# 6. health check (最多等 30 秒)
+# 6. health check
+#    edu-solver 容器在 docker network 里, 不暴露端口到宿主机
+#    所以 health check 用 docker exec 进容器自己测 + 通过 https 端到端测
 echo ""
-echo "🩺 Health check..."
+echo "🩺 Health check (容器内部)..."
 for i in $(seq 1 15); do
-    if curl -fsS --max-time 3 http://127.0.0.1:3000 > /dev/null 2>&1; then
-        echo "✅ App is healthy (took ${i}x2s)"
+    if docker exec edu-solver node -e "require('http').get('http://localhost:3000', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))" 2>/dev/null; then
+        echo "  ✅ Container responsive (${i}x2s)"
         break
     fi
     if [ "$i" -eq 15 ]; then
-        echo "❌ Health check failed after 30s. Last logs:"
+        echo "  ❌ Container health check failed after 30s"
+        echo "  edu-solver logs:"
         docker logs --tail 20 edu-solver
         exit 1
     fi
     echo "  waiting... ($i/15)"
     sleep 2
 done
+
+echo ""
+echo "🌐 End-to-end check (https://solver.riverstonedevs.com)..."
+if curl -fsS --max-time 8 -o /dev/null https://solver.riverstonedevs.com; then
+    echo "  ✅ Public URL OK"
+else
+    echo "  ⚠️  Public URL not responding yet (caddy reload 可能还在生效, 1 分钟后再试)"
+    # 不退出, 容器健康就算成功
+fi
 
 echo ""
 echo "════════════════════════════════════════"
