@@ -22,7 +22,7 @@ type Drag =
 
 const MIN_BOX = 60;
 const HANDLE_HIT = 36; // 触屏命中区
-const HANDLE_VISUAL = 18;
+const HANDLE_VISUAL = 22; // L 型角标的边长
 
 export default function CropStep({ src, onConfirm, onCancel }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -166,18 +166,26 @@ export default function CropStep({ src, onConfirm, onCancel }: Props) {
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      {/* 顶部提示 */}
+      {/* 顶部提示 — 半透明胶囊 */}
       <div
-        className="absolute left-0 right-0 z-30 text-center"
+        className="absolute left-1/2 z-30"
         style={{
-          top: "calc(env(safe-area-inset-top, 0px) + 12px)",
-          color: "rgba(255,255,255,0.9)",
-          fontSize: 13,
-          textShadow: "0 1px 2px rgba(0,0,0,0.7)",
+          top: "calc(env(safe-area-inset-top, 0px) + 14px)",
+          transform: "translateX(-50%)",
+          padding: "7px 14px",
+          borderRadius: 999,
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          color: "rgba(255,255,255,0.95)",
+          fontSize: 12.5,
+          fontWeight: 500,
+          letterSpacing: 0.2,
           pointerEvents: "none",
+          whiteSpace: "nowrap",
         }}
       >
-        拖动方框 / 拉角调整, 框住要解的那道题
+        拖动方框 / 拉角调整, 框住一道题
       </div>
 
       {/* 图片 */}
@@ -191,7 +199,7 @@ export default function CropStep({ src, onConfirm, onCancel }: Props) {
         draggable={false}
       />
 
-      {/* 暗色遮罩 (在图片之上, 通过 box-shadow 把 box 之外的区域涂黑) */}
+      {/* 暗色遮罩 + box 边框 (圆角, 跟随 border-radius 抠出选区) */}
       {box && imgRect && (
         <>
           <div
@@ -201,11 +209,12 @@ export default function CropStep({ src, onConfirm, onCancel }: Props) {
               top: box.y,
               width: box.w,
               height: box.h,
-              boxShadow: "0 0 0 9999px rgba(0,0,0,0.55)",
+              borderRadius: 14,
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.6)",
             }}
           />
 
-          {/* box 边框 + 9 宫格辅助线 */}
+          {/* box 边框 + 拖动捕捉区 */}
           <div
             className="absolute z-20"
             style={{
@@ -213,10 +222,12 @@ export default function CropStep({ src, onConfirm, onCancel }: Props) {
               top: box.y,
               width: box.w,
               height: box.h,
-              border: "2px solid #fbbf24",
+              border: "1.5px solid rgba(255,255,255,0.95)",
+              borderRadius: 14,
               boxSizing: "border-box",
               cursor: "move",
               touchAction: "none",
+              boxShadow: "0 0 0 1px rgba(0,0,0,0.25) inset",
             }}
             onPointerDown={(e) =>
               onPointerDown(e, (pointer, startBox) => ({
@@ -225,56 +236,14 @@ export default function CropStep({ src, onConfirm, onCancel }: Props) {
                 startPointer: pointer,
               }))
             }
-          >
-            {/* 三分线 */}
-            <div
-              className="absolute pointer-events-none"
-              style={{
-                left: "33.333%",
-                top: 0,
-                bottom: 0,
-                width: 1,
-                background: "rgba(255,255,255,0.3)",
-              }}
-            />
-            <div
-              className="absolute pointer-events-none"
-              style={{
-                left: "66.666%",
-                top: 0,
-                bottom: 0,
-                width: 1,
-                background: "rgba(255,255,255,0.3)",
-              }}
-            />
-            <div
-              className="absolute pointer-events-none"
-              style={{
-                top: "33.333%",
-                left: 0,
-                right: 0,
-                height: 1,
-                background: "rgba(255,255,255,0.3)",
-              }}
-            />
-            <div
-              className="absolute pointer-events-none"
-              style={{
-                top: "66.666%",
-                left: 0,
-                right: 0,
-                height: 1,
-                background: "rgba(255,255,255,0.3)",
-              }}
-            />
-          </div>
+          />
 
-          {/* 4 个角的 handle */}
+          {/* 4 个角的 handle (L 型角标, 白色, 类似相机对焦框) */}
           {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => {
-            const cx =
-              corner === "nw" || corner === "sw" ? box.x : box.x + box.w;
-            const cy =
-              corner === "nw" || corner === "ne" ? box.y : box.y + box.h;
+            const isLeft = corner === "nw" || corner === "sw";
+            const isTop = corner === "nw" || corner === "ne";
+            const cx = isLeft ? box.x : box.x + box.w;
+            const cy = isTop ? box.y : box.y + box.h;
             return (
               <div
                 key={corner}
@@ -289,9 +258,6 @@ export default function CropStep({ src, onConfirm, onCancel }: Props) {
                       ? "nwse-resize"
                       : "nesw-resize",
                   touchAction: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                 }}
                 onPointerDown={(e) =>
                   onPointerDown(e, (pointer, startBox) => ({
@@ -302,15 +268,29 @@ export default function CropStep({ src, onConfirm, onCancel }: Props) {
                   }))
                 }
               >
+                {/* L 型: 两条 3px 白色短边在该角对齐, 长度 HANDLE_VISUAL, 离实际角点 4px */}
                 <div
+                  className="absolute pointer-events-none"
                   style={{
+                    [isLeft ? "left" : "right"]: HANDLE_HIT / 2 - 1,
+                    [isTop ? "top" : "bottom"]: HANDLE_HIT / 2 - 1,
                     width: HANDLE_VISUAL,
+                    height: 3,
+                    background: "white",
+                    borderRadius: 2,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.45)",
+                  }}
+                />
+                <div
+                  className="absolute pointer-events-none"
+                  style={{
+                    [isLeft ? "left" : "right"]: HANDLE_HIT / 2 - 1,
+                    [isTop ? "top" : "bottom"]: HANDLE_HIT / 2 - 1,
+                    width: 3,
                     height: HANDLE_VISUAL,
-                    borderRadius: "50%",
-                    background: "#fbbf24",
-                    border: "3px solid #020617",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
-                    pointerEvents: "none",
+                    background: "white",
+                    borderRadius: 2,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.45)",
                   }}
                 />
               </div>

@@ -105,20 +105,35 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
             className="absolute inset-0 w-full h-full object-cover"
           />
 
-          {/* 取景框提示 */}
+          {/* 取景框 + 框内提示 */}
           {ready && (
             <div
-              className="absolute pointer-events-none"
+              className="absolute pointer-events-none flex items-center justify-center"
               style={{
-                left: "7.5%",
-                right: "7.5%",
-                top: "20%",
-                bottom: "30%",
-                border: "1.5px dashed rgba(255,255,255,0.55)",
-                borderRadius: 14,
-                boxShadow: "0 0 0 9999px rgba(0,0,0,0.25)",
+                left: "7%",
+                right: "7%",
+                top: "22%",
+                bottom: "32%",
+                border: "1.5px solid rgba(255,255,255,0.85)",
+                borderRadius: 18,
+                boxShadow: "0 0 0 9999px rgba(0,0,0,0.28)",
               }}
-            />
+            >
+              <div
+                style={{
+                  color: "rgba(255,255,255,0.85)",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textAlign: "center",
+                  lineHeight: 1.6,
+                  textShadow: "0 1px 3px rgba(0,0,0,0.7)",
+                }}
+              >
+                平行纸面拍照
+                <br />
+                题目放入框内识别更准
+              </div>
+            </div>
           )}
 
           {!ready && (
@@ -145,15 +160,18 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full bg-black/55 text-white text-sm font-medium backdrop-blur-sm"
-              style={{ padding: "8px 14px", border: "1px solid rgba(255,255,255,0.2)" }}
+              aria-label="取消"
+              className="rounded-full bg-black/55 text-white backdrop-blur-sm flex items-center justify-center"
+              style={{
+                width: 38,
+                height: 38,
+                fontSize: 18,
+                border: "1px solid rgba(255,255,255,0.18)",
+              }}
             >
-              ✕ 取消
+              ✕
             </button>
-            <div className="flex-1 text-center text-white text-xs opacity-70" style={{ pointerEvents: "none" }}>
-              把题目放进虚线框里
-            </div>
-            <div style={{ width: 70 }} />
+            <div className="flex-1" />
           </div>
 
           {/* 底部: 快门 */}
@@ -172,9 +190,9 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
               style={{
                 width: 76,
                 height: 76,
-                background: "white",
-                border: "5px solid rgba(255,255,255,0.4)",
-                boxShadow: "0 0 0 3px rgba(0,0,0,0.4)",
+                background: "#10b981",
+                border: "5px solid rgba(255,255,255,0.92)",
+                boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 4px 16px rgba(16,185,129,0.4)",
               }}
             />
           </div>
