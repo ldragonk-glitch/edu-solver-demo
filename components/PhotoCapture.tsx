@@ -2,18 +2,26 @@
 
 import { useRef, useState } from "react";
 import CameraCapture from "./CameraCapture";
+import CropStep from "./CropStep";
 
 interface Props {
   onCapture: (base64: string, mediaType: string) => void;
   disabled?: boolean;
 }
 
+function isCoarsePointer() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(pointer: coarse)").matches ?? false;
+}
+
 export default function PhotoCapture({ onCapture, disabled }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [pendingSrc, setPendingSrc] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (file: File) => {
+  const readFileAsDataUrl = (file: File) => {
     if (!file.type.startsWith("image/")) {
       alert("请上传图片文件 (JPG / PNG / WEBP)");
       return;
@@ -21,22 +29,30 @@ export default function PhotoCapture({ onCapture, disabled }: Props) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
-      setPreview(dataUrl);
-      const base64 = dataUrl.split(",")[1];
-      onCapture(base64, file.type);
+      setPendingSrc(dataUrl);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleCameraCapture = (base64: string, mediaType: string) => {
+  const handleTakePhoto = () => {
+    // 手机: 触发原生相机 (input capture). 桌面: 全屏 getUserMedia 取景
+    if (isCoarsePointer()) {
+      cameraInputRef.current?.click();
+    } else {
+      setShowCamera(true);
+    }
+  };
+
+  const handleCropConfirm = (base64: string, mediaType: string) => {
     setPreview(`data:${mediaType};base64,${base64}`);
-    setShowCamera(false);
+    setPendingSrc(null);
     onCapture(base64, mediaType);
   };
 
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* 隐藏: 相册上传 */}
         <input
           ref={fileRef}
           type="file"
@@ -44,14 +60,29 @@ export default function PhotoCapture({ onCapture, disabled }: Props) {
           style={{ display: "none" }}
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) handleFile(f);
+            if (f) readFileAsDataUrl(f);
+            e.target.value = "";
           }}
         />
 
-        {/* 主拍照按钮 — 大号脉动 */}
+        {/* 隐藏: 原生相机 (手机) */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) readFileAsDataUrl(f);
+            e.target.value = "";
+          }}
+        />
+
+        {/* 主拍照按钮 */}
         <button
           type="button"
-          onClick={() => setShowCamera(true)}
+          onClick={handleTakePhoto}
           disabled={disabled}
           className="glow-pulse"
           style={{
@@ -136,8 +167,19 @@ export default function PhotoCapture({ onCapture, disabled }: Props) {
 
       {showCamera && (
         <CameraCapture
-          onCapture={handleCameraCapture}
+          onCapture={(dataUrl) => {
+            setShowCamera(false);
+            setPendingSrc(dataUrl);
+          }}
           onClose={() => setShowCamera(false)}
+        />
+      )}
+
+      {pendingSrc && (
+        <CropStep
+          src={pendingSrc}
+          onConfirm={handleCropConfirm}
+          onCancel={() => setPendingSrc(null)}
         />
       )}
     </>
