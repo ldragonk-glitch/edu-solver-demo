@@ -11,10 +11,12 @@ echo "════════════════════════�
 echo "🚀 Deploy started: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════"
 
-# 1. 拉最新代码
+# 1. 拉最新代码 (fetch + reset --hard 而不是 pull, 防止服务器上有脏 working tree
+#    时 pull 被 abort. 部署目标永远精确匹配 origin/main)
 echo ""
-echo "📥 [1/5] git pull origin main"
-git pull origin main
+echo "📥 [1/5] git fetch + reset --hard origin/main"
+git fetch origin main
+git reset --hard origin/main
 
 # 2. 装依赖
 echo ""
