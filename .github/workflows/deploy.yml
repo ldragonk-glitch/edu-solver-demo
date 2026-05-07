@@ -39,4 +39,4 @@ jobs:
           ssh -i ~/.ssh/id_lighthouse \
               -o StrictHostKeyChecking=accept-new \
               "${{ secrets.LIGHTHOUSE_USER }}@${{ secrets.LIGHTHOUSE_HOST }}" \
-              'cd /opt/edu-solver && git pull origin main && bash scripts/deploy.sh'
+              'cd /opt/edu-solver && git fetch origin main && git reset --hard origin/main && bash scripts/deploy.sh'
