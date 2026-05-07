@@ -43,7 +43,7 @@ npm run dev:lan
 1. 找到本机局域网 IP (Windows 在 PowerShell 里跑 `ipconfig`, 看 `IPv4 地址`, 假设是 `192.168.1.10`)
 2. 确保电脑和手机连同一个 WiFi
 3. 手机浏览器打开 `http://192.168.1.10:3000`
-4. iOS Safari 可以"添加到主屏幕", 看起来就是个 native app
+4. iOS Safari 可以"添加到主屏幕（Add to Home Screen）", 看起来就是个 native app
 
 ---
 
