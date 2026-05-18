@@ -14,19 +14,19 @@ const PRICING_USD_PER_M: Record<
   string,
   { input: number; output: number; cache_write: number; cache_read: number }
 > = {
-  "claude-sonnet-4-5": {
+  "claude-sonnet-4-6": {
     input: 3,
     output: 15,
     cache_write: 3.75,
     cache_read: 0.3,
   },
-  "claude-opus-4-5": {
+  "claude-opus-4-6": {
     input: 15,
     output: 75,
     cache_write: 18.75,
     cache_read: 1.5,
   },
-  "claude-haiku-4-5": {
+  "claude-haiku-4-6": {
     input: 1,
     output: 5,
     cache_write: 1.25,
@@ -54,13 +54,13 @@ export interface UsageEntry {
 }
 
 function getPricing(model: string) {
-  // 找完全匹配, 或前缀匹配 (例如 claude-sonnet-4-5-* 都算 sonnet-4-5)
+  // 找完全匹配, 或前缀匹配 (例如 claude-sonnet-4-6-* 都算 sonnet-4-6)
   if (PRICING_USD_PER_M[model]) return PRICING_USD_PER_M[model];
   for (const [key, value] of Object.entries(PRICING_USD_PER_M)) {
     if (model.startsWith(key)) return value;
   }
-  // 默认按 sonnet-4-5 算
-  return PRICING_USD_PER_M["claude-sonnet-4-5"];
+  // 默认按 sonnet-4-6 算
+  return PRICING_USD_PER_M["claude-sonnet-4-6"];
 }
 
 export function computeCostUsd(

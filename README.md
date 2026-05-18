@@ -54,7 +54,7 @@ npm run dev:lan
    ↓ POST /api/solve { image: base64, mediaType }
 Next.js API Route (本机 or Vercel)
    ↓ Anthropic SDK, tool_use 强制 JSON schema
-Claude Sonnet 4.5 (默认, 可改 .env 切到 Opus)
+Claude Sonnet 4.6 (默认, 可改 .env 切到 Opus)
    ↓ 返回 { solution: { problem, steps, final_answer } }
 React 渲染器 (KaTeX 公式 + Framer Motion 动画)
 ```
@@ -89,12 +89,12 @@ React 渲染器 (KaTeX 公式 + Framer Motion 动画)
 
 ## 切换模型
 
-默认用 `claude-sonnet-4-5` (视觉理解 + 解题足够, 比 Opus 便宜 5 倍且快一倍).
+默认用 `claude-sonnet-4-6` (视觉理解 + 解题足够, 比 Opus 便宜 5 倍且快一倍).
 
 要换模型, 编辑 `.env.local`:
 
 ```
-ANTHROPIC_MODEL=claude-opus-4-5
+ANTHROPIC_MODEL=claude-opus-4-6
 ```
 
 ## 文件结构
@@ -124,7 +124,7 @@ edu-solver-demo/
 1. 掏出手机, 让投资人看你扫二维码访问 (二维码可以 [qr-code-generator.com](https://www.qr-code-generator.com/) 生成, 输入 LAN URL)
 2. 现场翻一本数学书或打印题, 拍一张
 3. 5–15 秒后看到一步步动画讲解
-4. 说一句: "这是 Claude 4.5 直接读图 + 输出结构化 JSON, 我们前端按 schema 渲染. JSX 卡视频上太重, 我们这套 DSL 几 KB, 中国到新加坡 80ms, 加全球加速能压到 60ms."
+4. 说一句: "这是 Claude 4.6 直接读图 + 输出结构化 JSON, 我们前端按 schema 渲染. JSX 卡视频上太重, 我们这套 DSL 几 KB, 中国到新加坡 80ms, 加全球加速能压到 60ms."
 
 ## 后续路线 (PPT 用)
 

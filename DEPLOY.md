@@ -143,7 +143,7 @@ Vercel 监听 git push, 自动重新构建部署. 1-2 分钟后新版上线.
 - ⚠️ **关键**: Claude 调用通常 15-40 秒, **Hobby 计划的 10 秒 timeout 会把请求 cut 掉**.
 - 解法 1: 升级 Vercel Pro ($20/月), function timeout 60 秒
 - 解法 2: 用 Cloudflare Workers / 自己 VPS 跑后端
-- 解法 3: 切回 Sonnet 4.5 默认快模型 (一般 < 10 秒)
+- 解法 3: 切回 Sonnet 4.6 默认快模型 (一般 < 10 秒)
 
 > ⚠️ 这是真实坑. Hobby 部署后第一次拍复杂题大概率会 timeout. 投资人 demo 当晚就升 Pro, $20 解决.
 
