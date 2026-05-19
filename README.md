@@ -97,6 +97,17 @@ React 渲染器 (KaTeX 公式 + Framer Motion 动画)
 ANTHROPIC_MODEL=claude-opus-4-6
 ```
 
+## 隐藏模型对比
+
+访问 `/?models=1` 会出现调试用模型切换, 可手动选择 Claude / GLM / Kimi 对同一拍照流程做效果对比。普通 `/` 不显示开关, 默认仍走 Claude。
+
+`.env.local` 里按需补充:
+
+```
+BIGMODEL_API_KEY=你的智谱key
+MOONSHOT_API_KEY=你的Kimi key
+```
+
 ## 文件结构
 
 ```

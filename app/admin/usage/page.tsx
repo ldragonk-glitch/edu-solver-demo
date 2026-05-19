@@ -66,7 +66,7 @@ export default async function UsagePage({
     (e) => e.cache_creation_input_tokens || 0,
   );
   const totalCacheRead = sum(entries, (e) => e.cache_read_input_tokens || 0);
-  const totalCostUsd = sum(entries, (e) => e.cost_usd);
+  const totalCostUsd = sum(entries, costOf);
   const avgCostUsd = totalCalls > 0 ? totalCostUsd / totalCalls : 0;
   const avgLatencyMs =
     totalCalls > 0 ? sum(entries, (e) => e.latency_ms) / totalCalls : 0;
@@ -221,7 +221,7 @@ export default async function UsagePage({
                   shortModel(e.model),
                   e.input_tokens.toLocaleString(),
                   e.output_tokens.toLocaleString(),
-                  `$${e.cost_usd.toFixed(4)}`,
+                  e.cost_usd == null ? "n/a" : `$${e.cost_usd.toFixed(4)}`,
                   `${(e.latency_ms / 1000).toFixed(1)}s`,
                 ],
               }))}
@@ -301,10 +301,14 @@ function groupByDate(entries: UsageEntry[]) {
     };
     cur.calls += 1;
     cur.tokens += e.input_tokens + e.output_tokens;
-    cur.cost += e.cost_usd;
+    cur.cost += costOf(e);
     map.set(date, cur);
   }
   return [...map.values()].sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function costOf(e: UsageEntry): number {
+  return typeof e.cost_usd === "number" ? e.cost_usd : 0;
 }
 
 // ============================================

@@ -1,8 +1,17 @@
 import { anthropic, MODEL } from "@/lib/anthropic";
+import {
+  buildOpenAIChatParams,
+  getDefaultProvider,
+  getOpenAIProviderConfig,
+  parseOpenAIToolArguments,
+  resolveRequestedProvider,
+  type ModelProvider,
+} from "@/lib/modelProviders";
 import { solveTool } from "@/lib/solveSchema";
 import { SYSTEM_PROMPT } from "@/lib/prompts";
 import { computeCostUsd, logUsage } from "@/lib/usage";
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
 
 export const maxDuration = 120;
 export const runtime = "nodejs";
@@ -11,6 +20,7 @@ type ReqBody = {
   image?: string; // base64, 不带 data url 前缀
   mediaType?: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
   text?: string; // 备选: 纯文本题目
+  provider?: string;
 };
 
 type SolveResult = {
@@ -27,6 +37,14 @@ export async function POST(req: Request) {
   }
 
   const { image, mediaType, text } = body;
+  const providerResult = resolveRequestedProvider(
+    body.provider,
+    getDefaultProvider(),
+  );
+  if (!providerResult.ok) {
+    return NextResponse.json({ error: providerResult.error }, { status: 400 });
+  }
+  const provider = providerResult.provider;
 
   if (!image && !text) {
     return NextResponse.json(
@@ -35,7 +53,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (provider === "claude" && !process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
       { error: "服务端未配置 ANTHROPIC_API_KEY, 请检查 .env.local" },
       { status: 500 },
@@ -66,6 +84,16 @@ export async function POST(req: Request) {
 
   const t0 = Date.now();
   try {
+    if (provider !== "claude") {
+      return await solveWithOpenAICompatible({
+        provider,
+        image,
+        mediaType,
+        text,
+        startedAt: t0,
+      });
+    }
+
     const response = await anthropic.messages.create({
       model: MODEL,
       // 让 Claude 输出整个 HTML 页面, 通常 6-12k tokens
@@ -109,6 +137,7 @@ export async function POST(req: Request) {
     );
     void logUsage({
       ts: new Date().toISOString(),
+      provider,
       model: response.model,
       input_tokens: response.usage.input_tokens,
       output_tokens: response.usage.output_tokens,
@@ -123,6 +152,7 @@ export async function POST(req: Request) {
       html: result.html,
       summary: result.summary,
       usage: response.usage,
+      provider,
       model: response.model,
       stop_reason: response.stop_reason,
       cost_usd,
@@ -132,8 +162,77 @@ export async function POST(req: Request) {
     const message = err instanceof Error ? err.message : "未知错误";
     console.error("[solve] error:", err);
     return NextResponse.json(
-      { error: `调用 Claude 失败: ${message}` },
+      { error: `调用 ${providerLabel(provider)} 失败: ${message}` },
       { status: 500 },
     );
   }
+}
+
+async function solveWithOpenAICompatible({
+  provider,
+  image,
+  mediaType,
+  text,
+  startedAt,
+}: {
+  provider: Exclude<ModelProvider, "claude">;
+  image?: string;
+  mediaType?: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+  text?: string;
+  startedAt: number;
+}) {
+  const config = getOpenAIProviderConfig(provider);
+  const client = new OpenAI({
+    apiKey: config.apiKey,
+    baseURL: config.baseURL,
+  });
+
+  const response = await client.chat.completions.create(
+    buildOpenAIChatParams({
+      provider,
+      model: config.model,
+      systemPrompt: SYSTEM_PROMPT,
+      tool: solveTool,
+      image,
+      mediaType,
+      text,
+    }),
+  );
+  const latency_ms = Date.now() - startedAt;
+  const message = response.choices[0]?.message;
+  const result = parseOpenAIToolArguments(message?.tool_calls);
+  const model = response.model || config.model;
+  const input_tokens = response.usage?.prompt_tokens || 0;
+  const output_tokens = response.usage?.completion_tokens || 0;
+  const cost_usd = computeCostUsd(model, input_tokens, output_tokens);
+
+  void logUsage({
+    ts: new Date().toISOString(),
+    provider,
+    model,
+    input_tokens,
+    output_tokens,
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+    cost_usd,
+    latency_ms,
+    stop_reason: response.choices[0]?.finish_reason || undefined,
+  });
+
+  return NextResponse.json({
+    html: result.html,
+    summary: result.summary,
+    usage: response.usage,
+    provider,
+    model,
+    stop_reason: response.choices[0]?.finish_reason,
+    cost_usd,
+    latency_ms,
+  });
+}
+
+function providerLabel(provider: ModelProvider): string {
+  if (provider === "glm") return "GLM";
+  if (provider === "kimi") return "Kimi";
+  return "Claude";
 }

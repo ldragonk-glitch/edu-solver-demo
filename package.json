@@ -7,6 +7,7 @@
     "dev:lan": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
+    "test": "node --import tsx --test tests/*.test.ts",
     "lint": "next lint",
     "gen-icons": "node scripts/gen-icons.mjs"
   },
@@ -15,6 +16,7 @@
     "framer-motion": "^11.11.17",
     "katex": "^0.16.11",
     "next": "^15.5.4",
+    "openai": "^6.38.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-katex": "^3.0.1"
@@ -29,6 +31,7 @@
     "postcss": "^8.4.49",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.14",
+    "tsx": "^4.22.2",
     "typescript": "^5.6.3"
   }
 }

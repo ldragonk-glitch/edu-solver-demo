@@ -1,12 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PhotoCapture from "@/components/PhotoCapture";
 import SolutionFrame from "@/components/SolutionFrame";
 
 type ApiResponse =
-  | { html: string; summary?: string; usage?: unknown; model?: string }
+  | {
+      html: string;
+      summary?: string;
+      usage?: unknown;
+      provider?: ModelProvider;
+      model?: string;
+    }
   | { error: string };
+
+type ModelProvider = "claude" | "glm" | "kimi";
+
+const MODEL_OPTIONS: { value: ModelProvider; label: string; hint: string }[] = [
+  { value: "claude", label: "Claude", hint: "Sonnet 4.6" },
+  { value: "glm", label: "GLM", hint: "5V Turbo" },
+  { value: "kimi", label: "Kimi", hint: "K2.6" },
+];
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -14,6 +28,18 @@ export default function Home() {
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [selectedProvider, setSelectedProvider] =
+    useState<ModelProvider>("claude");
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [returnedProvider, setReturnedProvider] =
+    useState<ModelProvider | null>(null);
+  const [returnedModel, setReturnedModel] = useState<string | null>(null);
+
+  useEffect(() => {
+    setShowModelPicker(
+      new URLSearchParams(window.location.search).get("models") === "1",
+    );
+  }, []);
 
   const handleCapture = async (base64: string, mediaType: string) => {
     setLoading(true);
@@ -21,13 +47,19 @@ export default function Home() {
     setHtml(null);
     setSummary(null);
     setLatencyMs(null);
+    setReturnedProvider(null);
+    setReturnedModel(null);
     const t0 = performance.now();
 
     try {
       const res = await fetch("/api/solve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64, mediaType }),
+        body: JSON.stringify({
+          image: base64,
+          mediaType,
+          provider: showModelPicker ? selectedProvider : undefined,
+        }),
       });
       const data = (await res.json()) as ApiResponse;
       if (!res.ok || "error" in data) {
@@ -35,6 +67,8 @@ export default function Home() {
       }
       setHtml(data.html);
       setSummary(data.summary || null);
+      setReturnedProvider(data.provider || null);
+      setReturnedModel(data.model || null);
       setLatencyMs(Math.round(performance.now() - t0));
     } catch (err) {
       const message = err instanceof Error ? err.message : "未知错误";
@@ -49,6 +83,8 @@ export default function Home() {
     setSummary(null);
     setError(null);
     setLatencyMs(null);
+    setReturnedProvider(null);
+    setReturnedModel(null);
   };
 
   // ============= 解题页面 (iframe 占满) =============
@@ -113,6 +149,12 @@ export default function Home() {
           {latencyMs != null && (
             <span style={{ fontSize: 11, color: "#64748b", flexShrink: 0 }}>
               {(latencyMs / 1000).toFixed(1)}s
+            </span>
+          )}
+          {showModelPicker && (returnedProvider || returnedModel) && (
+            <span style={{ fontSize: 11, color: "#64748b", flexShrink: 0 }}>
+              {formatProvider(returnedProvider)}
+              {returnedModel ? ` · ${returnedModel}` : ""}
             </span>
           )}
         </div>
@@ -185,7 +227,59 @@ export default function Home() {
 
         {/* 拍照 / 上传 */}
         {!loading && !error && (
-          <PhotoCapture onCapture={handleCapture} disabled={loading} />
+          <>
+            {showModelPicker && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 8,
+                  marginBottom: 18,
+                }}
+              >
+                {MODEL_OPTIONS.map((option) => {
+                  const active = selectedProvider === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setSelectedProvider(option.value)}
+                      aria-pressed={active}
+                      style={{
+                        minHeight: 58,
+                        borderRadius: 12,
+                        border: active
+                          ? "1px solid rgba(251, 191, 36, 0.75)"
+                          : "1px solid rgba(148, 163, 184, 0.22)",
+                        background: active
+                          ? "rgba(245, 158, 11, 0.16)"
+                          : "rgba(15, 23, 42, 0.72)",
+                        color: active ? "#fbbf24" : "#cbd5e1",
+                        cursor: "pointer",
+                        fontWeight: 800,
+                      }}
+                    >
+                      <span style={{ display: "block", fontSize: 13 }}>
+                        {option.label}
+                      </span>
+                      <span
+                        style={{
+                          display: "block",
+                          marginTop: 3,
+                          fontSize: 10,
+                          color: active ? "#fcd34d" : "#64748b",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {option.hint}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <PhotoCapture onCapture={handleCapture} disabled={loading} />
+          </>
         )}
 
         {/* Loading */}
@@ -278,4 +372,10 @@ export default function Home() {
       </div>
     </main>
   );
+}
+
+function formatProvider(provider: ModelProvider | null): string {
+  if (provider === "glm") return "GLM";
+  if (provider === "kimi") return "Kimi";
+  return "Claude";
 }

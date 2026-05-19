@@ -43,12 +43,13 @@ const PRICING_USD_PER_M: Record<
 
 export interface UsageEntry {
   ts: string;
+  provider?: string;
   model: string;
   input_tokens: number;
   output_tokens: number;
   cache_creation_input_tokens: number;
   cache_read_input_tokens: number;
-  cost_usd: number;
+  cost_usd: number | null;
   latency_ms: number;
   stop_reason?: string;
 }
@@ -59,8 +60,7 @@ function getPricing(model: string) {
   for (const [key, value] of Object.entries(PRICING_USD_PER_M)) {
     if (model.startsWith(key)) return value;
   }
-  // 默认按 sonnet-4-6 算
-  return PRICING_USD_PER_M["claude-sonnet-4-6"];
+  return null;
 }
 
 export function computeCostUsd(
@@ -69,8 +69,9 @@ export function computeCostUsd(
   output_tokens: number,
   cache_creation_input_tokens = 0,
   cache_read_input_tokens = 0,
-): number {
+): number | null {
   const p = getPricing(model);
+  if (!p) return null;
   return (
     (input_tokens / 1_000_000) * p.input +
     (output_tokens / 1_000_000) * p.output +
