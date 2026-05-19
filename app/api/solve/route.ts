@@ -13,7 +13,7 @@ import { computeCostUsd, logUsage } from "@/lib/usage";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-export const maxDuration = 120;
+export const maxDuration = 600;
 export const runtime = "nodejs";
 
 type ReqBody = {
@@ -185,8 +185,6 @@ async function solveWithOpenAICompatible({
   const client = new OpenAI({
     apiKey: config.apiKey,
     baseURL: config.baseURL,
-    timeout: 115_000,
-    maxRetries: 0,
   });
 
   const response = await client.chat.completions.create(
