@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { fitWithinMaxSide, SOLVE_IMAGE_QUALITY } from "@/lib/imageSizing";
 
 interface Props {
   onCapture: (base64: string, mediaType: string) => void;
@@ -66,14 +67,15 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
     const canvas = canvasRef.current;
     if (!video || !canvas || !ready) return;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    const size = fitWithinMaxSide(video.videoWidth, video.videoHeight);
+    canvas.width = size.width;
+    canvas.height = size.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, size.width, size.height);
 
-    // 输出 jpeg 比 png 小很多, 0.9 质量足够 OCR
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    // 输出 jpeg 比 png 小很多, 并限制尺寸避免视觉模型网关拒绝大请求.
+    const dataUrl = canvas.toDataURL("image/jpeg", SOLVE_IMAGE_QUALITY);
     const base64 = dataUrl.split(",")[1];
 
     streamRef.current?.getTracks().forEach((t) => t.stop());

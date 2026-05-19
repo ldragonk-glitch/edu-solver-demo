@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import CameraCapture from "./CameraCapture";
+import { fitWithinMaxSide, SOLVE_IMAGE_QUALITY } from "@/lib/imageSizing";
 
 interface Props {
   onCapture: (base64: string, mediaType: string) => void;
@@ -13,19 +14,20 @@ export default function PhotoCapture({ onCapture, disabled }: Props) {
   const [showCamera, setShowCamera] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       alert("请上传图片文件 (JPG / PNG / WEBP)");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
+    try {
+      const dataUrl = await compressImageFile(file);
       setPreview(dataUrl);
       const base64 = dataUrl.split(",")[1];
-      onCapture(base64, file.type);
-    };
-    reader.readAsDataURL(file);
+      onCapture(base64, "image/jpeg");
+    } catch (err) {
+      console.error("[photo] failed to compress image:", err);
+      alert("图片读取失败, 请换一张 JPG / PNG / WEBP 再试");
+    }
   };
 
   const handleCameraCapture = (base64: string, mediaType: string) => {
@@ -142,4 +144,30 @@ export default function PhotoCapture({ onCapture, disabled }: Props) {
       )}
     </>
   );
+}
+
+function compressImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("图片读取失败"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("图片解码失败"));
+      img.onload = () => {
+        const size = fitWithinMaxSide(img.naturalWidth, img.naturalHeight);
+        const canvas = document.createElement("canvas");
+        canvas.width = size.width;
+        canvas.height = size.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("浏览器不支持图片压缩"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, size.width, size.height);
+        resolve(canvas.toDataURL("image/jpeg", SOLVE_IMAGE_QUALITY));
+      };
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
 }

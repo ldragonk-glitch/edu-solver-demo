@@ -185,6 +185,8 @@ async function solveWithOpenAICompatible({
   const client = new OpenAI({
     apiKey: config.apiKey,
     baseURL: config.baseURL,
+    timeout: 115_000,
+    maxRetries: 0,
   });
 
   const response = await client.chat.completions.create(

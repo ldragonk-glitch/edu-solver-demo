@@ -50,11 +50,14 @@ export default function Home() {
     setReturnedProvider(null);
     setReturnedModel(null);
     const t0 = performance.now();
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 120_000);
 
     try {
       const res = await fetch("/api/solve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           image: base64,
           mediaType,
@@ -71,9 +74,15 @@ export default function Home() {
       setReturnedModel(data.model || null);
       setLatencyMs(Math.round(performance.now() - t0));
     } catch (err) {
-      const message = err instanceof Error ? err.message : "未知错误";
+      const message =
+        err instanceof DOMException && err.name === "AbortError"
+          ? "请求超时, 请换一张更清晰/更小的图片再试"
+          : err instanceof Error
+            ? err.message
+            : "未知错误";
       setError(message);
     } finally {
+      window.clearTimeout(timeout);
       setLoading(false);
     }
   };
